@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Подключение к серверу</title>
+    <style>
+        :root {
+            --bg-color: #1b2838;
+            --card-bg: #101822;
+            --accent-color: #ff7a22;
+            --accent-hover: #e06518;
+            --text-color: #ffffff;
+            --text-muted: #b8b6b4;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Segoe UI', Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        .container {
+            text-align: center;
+            background: var(--card-bg);
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+            border: 1px solid #233243;
+            max-width: 450px;
+            width: 90%;
+        }
+
+        h2 {
+            margin-top: 0;
+            font-size: 24px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        .instruction {
+            color: var(--text-muted);
+            font-size: 14px;
+            line-height: 1.5;
+            margin-bottom: 25px;
+        }
+
+        .ip-container {
+            position: relative;
+            background: #0b1016;
+            border: 2px solid #1f2d3d;
+            border-radius: 8px;
+            padding: 18px;
+            margin-bottom: 20px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 22px;
+            font-weight: bold;
+            color: var(--accent-color);
+            letter-spacing: 1px;
+            word-break: break-all;
+        }
+
+        .btn {
+            display: inline-block;
+            width: 100%;
+            padding: 14px;
+            font-size: 16px;
+            color: #ffffff;
+            background-color: var(--accent-color);
+            border: none;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s ease, transform 0.1s ease;
+            box-sizing: border-box;
+        }
+
+        .btn:hover {
+            background-color: var(--accent-hover);
+        }
+
+        .btn:active {
+            transform: scale(0.98);
+        }
+
+        .btn.copied {
+            background-color: #2ea44f;
+        }
+
+        .console-hint {
+            margin-top: 15px;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+        
+        .console-hint code {
+            background: #141f2c;
+            padding: 2px 6px;
+            border-radius: 4px;
+            color: #fff;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h2>Переход на другой сервер</h2>
+        <p class="instruction">Из-за ограничений безопасности Steam прямое подключение заблокировано. Пожалуйста, скопируйте IP-адрес ниже:</p>
+        
+        <!-- Сюда скрипт подставит IP -->
+        <div class="ip-container" id="ipAddress">Загрузка адреса...</div>
+
+        <button class="btn" id="copyBtn" onclick="copyIp()">СКОПИРОВАТЬ IP</button>
+
+        <p class="console-hint">После копирования откройте консоль (<b>~</b>) [вставить]</code></p>
+    </div>
+
+    <script>
+        // 1. Получаем IP из параметров адресной строки (?ip=...)
+        const urlParams = new URLSearchParams(window.location.search);
+        // Если параметр ?ip не передан, отобразится дефолтный заглушечный адрес
+        const serverIp = "connect " + (urlParams.get('ip') || "123.45.67.89:27015"); 
+        
+        const ipContainer = document.getElementById('ipAddress');
+        ipContainer.innerText = serverIp;
+
+        // 2. Функция копирования в буфер обмена
+        function copyIp() {
+            // Современный и надежный способ копирования текста
+            navigator.clipboard.writeText(serverIp).then(() => {
+                const btn = document.getElementById('copyBtn');
+                btn.innerText = "СКОПИРОВАНО!";
+                btn.classList.add('copied');
+                
+                // Возвращаем кнопку в исходное состояние через 2 секунды
+                setTimeout(() => {
+                    btn.innerText = "СКОПИРОВАТЬ IP";
+                    btn.classList.remove('copied');
+                }, 2000);
+            }).catch(err => {
+                console.error('Не удалось скопировать: ', err);
+                alert('Не удалось скопировать автоматически. Выделите IP вручную.');
+            });
+        }
+    </script>
+
+</body>
+</html>
