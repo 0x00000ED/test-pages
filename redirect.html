@@ -3,7 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Подключение к серверу</title>
+    <title>Подключение к серверу / Server Connection</title>
+    <link rel="preconnect" href="https://googleapis.com">
+    <link rel="preconnect" href="https://gstatic.com" crossorigin>
+    <link href="https://googleapis.com/css2?family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
     <style>
         :root {
             --bg-color: #1b2838;
@@ -12,6 +15,7 @@
             --accent-hover: #e06518;
             --text-color: #ffffff;
             --text-muted: #b8b6b4;
+            --error-color: #e74c3c;
         }
 
         body {
@@ -44,6 +48,14 @@
             letter-spacing: 0.5px;
         }
 
+        /* Стили для иконки ошибки в заглушке */
+        .error-icon {
+            font-size: 48px;
+            color: var(--error-color);
+            margin-bottom: 15px;
+            line-height: 1;
+        }
+
         .instruction {
             color: var(--text-muted);
             font-size: 14px;
@@ -58,12 +70,19 @@
             border-radius: 8px;
             padding: 18px;
             margin-bottom: 20px;
-            font-family: 'Courier New', Courier, monospace;
-            font-size: 22px;
-            font-weight: bold;
+            font-family: 'JetBrains Mono', 'Courier New', Courier, monospace;
+            font-size: 20px;
+            font-weight: 700;
             color: var(--accent-color);
-            letter-spacing: 1px;
+            letter-spacing: 0.5px;
             word-break: break-all;
+            cursor: pointer;
+            user-select: all;
+            transition: border-color 0.2s ease;
+        }
+
+        .ip-container:hover {
+            border-color: var(--accent-color);
         }
 
         .btn {
@@ -79,6 +98,7 @@
             cursor: pointer;
             transition: background 0.2s ease, transform 0.1s ease;
             box-sizing: border-box;
+            text-transform: uppercase;
         }
 
         .btn:hover {
@@ -97,6 +117,7 @@
             margin-top: 15px;
             font-size: 12px;
             color: var(--text-muted);
+            line-height: 1.4;
         }
         
         .console-hint code {
@@ -104,48 +125,110 @@
             padding: 2px 6px;
             border-radius: 4px;
             color: #fff;
+            font-family: monospace;
         }
     </style>
 </head>
 <body>
 
-    <div class="container">
-        <h2>Переход на другой сервер</h2>
-        <p class="instruction">Из-за ограничений безопасности Steam прямое подключение заблокировано. Пожалуйста, скопируйте IP-адрес ниже:</p>
+    <!-- 1. Основной блок подключения (по умолчанию скрыт, покажется только если IP есть) -->
+    <div class="container" id="mainContainer" style="display: none;">
+        <h2 id="title">Переход на другой сервер</h2>
+        <p class="instruction" id="instruction">Из-за ограничений безопасности Steam прямое подключение заблокировано. Пожалуйста, скопируйте IP-адрес ниже:</p>
         
-        <!-- Сюда скрипт подставит IP -->
-        <div class="ip-container" id="ipAddress">Загрузка адреса...</div>
+        <div class="ip-container" id="ipAddress" title="Кликните, чтобы выделить">Загрузка адреса...</div>
 
         <button class="btn" id="copyBtn" onclick="copyIp()">СКОПИРОВАТЬ IP</button>
 
-        <p class="console-hint">После копирования откройте консоль (<b>~</b>) [вставить]</code></p>
+        <p class="console-hint" id="hint">После копирования откройте консоль (<code>~</code>) и вставьте команду в игру.</p>
+    </div>
+
+    <!-- 2. Блок-заглушка на случай отсутствия IP (по умолчанию скрыт) -->
+    <div class="container" id="errorContainer" style="display: none;">
+        <div class="error-icon">⚠️</div>
+        <h2 id="errorTitle">Ошибка подключения</h2>
+        <p class="instruction" id="errorText">Адрес сервера не указан или ссылка устарела. Пожалуйста, вернитесь на сайт и попробуйте подключиться снова.</p>
     </div>
 
     <script>
-        // 1. Получаем IP из параметров адресной строки (?ip=...)
-        const urlParams = new URLSearchParams(window.location.search);
-        // Если параметр ?ip не передан, отобразится дефолтный заглушечный адрес
-        const serverIp = "connect " + (urlParams.get('ip') || "123.45.67.89:27015"); 
-        
-        const ipContainer = document.getElementById('ipAddress');
-        ipContainer.innerText = serverIp;
+        // Словарь переводов для нормального состояния и для заглушки
+        const translations = {
+            ru: {
+                title: "Переход на другой сервер",
+                instruction: "Из-за ограничений безопасности Steam прямое подключение заблокировано. Пожалуйста, скопируйте IP-адрес ниже:",
+                btnText: "СКОПИРОВАТЬ IP",
+                btnCopied: "СКОПИРОВАНО!",
+                hint: "После копирования откройте консоль (<code>~</code>) и вставьте команду в игру.",
+                alertError: "Не удалось скопировать автоматически. Выделите текст в поле вручную.",
+                errorTitle: "Ошибка подключения",
+                errorText: "Адрес сервера не указан или ссылка устарела. Пожалуйста, вернитесь на сайт и попробуйте подключиться снова."
+            },
+            en: {
+                title: "Switching to another server",
+                instruction: "Due to Steam security restrictions, direct connection is blocked. Please copy the IP address below:",
+                btnText: "COPY IP ADDRESS",
+                btnCopied: "COPIED!",
+                hint: "After copying, open the game console (<code>~</code>) and paste the command.",
+                alertError: "Failed to copy automatically. Please select and copy the text manually.",
+                errorTitle: "Connection Error",
+                errorText: "The server address is missing or the link has expired. Please go back to the website and try again."
+            }
+        };
 
-        // 2. Функция копирования в буфер обмена
-        function copyIp() {
-            // Современный и надежный способ копирования текста
-            navigator.clipboard.writeText(serverIp).then(() => {
-                const btn = document.getElementById('copyBtn');
-                btn.innerText = "СКОПИРОВАНО!";
-                btn.classList.add('copied');
-                
-                // Возвращаем кнопку в исходное состояние через 2 секунды
-                setTimeout(() => {
-                    btn.innerText = "СКОПИРОВАТЬ IP";
-                    btn.classList.remove('copied');
-                }, 2000);
-            }).catch(err => {
-                console.error('Не удалось скопировать: ', err);
-                alert('Не удалось скопировать автоматически. Выделите IP вручную.');
+        // 1. Получаем параметры из URL
+        const urlParams = new URLSearchParams(window.location.search);
+        
+        // Определяем язык
+        let lang = urlParams.get('lang') || 'ru';
+        lang = lang.toLowerCase() === 'en' ? 'en' : 'ru';
+        const t = translations[lang];
+        document.documentElement.lang = lang;
+
+        // Проверяем наличие параметра ip
+        const rawIp = urlParams.get('ip');
+
+        if (!rawIp || rawIp.trim() === "") {
+            // ЕСЛИ IP НЕТ: Переводим и показываем заглушку
+            document.getElementById('errorTitle').innerText = t.errorTitle;
+            document.getElementById('errorText').innerText = t.errorText;
+            document.getElementById('errorContainer').style.display = 'block';
+        } else {
+            // ЕСЛИ IP ЕСТЬ: Переводим интерфейс и показываем основную карточку
+            document.getElementById('title').innerText = t.title;
+            document.getElementById('instruction').innerText = t.instruction;
+            document.getElementById('copyBtn').innerText = t.btnText;
+            document.getElementById('hint').innerHTML = t.hint;
+
+            const serverIp = "connect " + rawIp.trim(); 
+            const ipContainer = document.getElementById('ipAddress');
+            ipContainer.innerText = serverIp;
+
+            document.getElementById('mainContainer').style.display = 'block';
+
+            // Функция копирования в буфер обмена (активна только если показан основной контейнер)
+            window.copyIp = function() {
+                navigator.clipboard.writeText(serverIp).then(() => {
+                    const btn = document.getElementById('copyBtn');
+                    btn.innerText = t.btnCopied;
+                    btn.classList.add('copied');
+                    
+                    setTimeout(() => {
+                        btn.innerText = t.btnText;
+                        btn.classList.remove('copied');
+                    }, 2000);
+                }).catch(err => {
+                    console.error('Не удалось скопировать: ', err);
+                    alert(t.alertError);
+                });
+            };
+
+            // Выделение всего текста при клике на сам блок с IP
+            ipContainer.addEventListener('click', () => {
+                const range = document.createRange();
+                range.selectNodeContents(ipContainer);
+                const selection = window.getSelection();
+                selection.removeAllRanges();
+                selection.addRange(range);
             });
         }
     </script>
