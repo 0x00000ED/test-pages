@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Подключение к серверу</title>
-    
-    <!-- 1. ПОДКЛЮЧАЕМ ROBOTO И ROBOTO MONO ИЗ GOOGLE FONTS -->
+    <title>Подключение к серверу / Server Connection</title>
+
+    <!-- Подключаем Roboto и Roboto Mono -->
     <link rel="preconnect" href="https://googleapis.com">
     <link rel="preconnect" href="https://gstatic.com" crossorigin>
     <link href="https://googleapis.com/css2?family=Roboto:wght@400;500;700&family=Roboto+Mono:wght@700&display=swap" rel="stylesheet">
@@ -24,8 +24,7 @@
         body {
             background-color: var(--bg-color);
             color: var(--text-color);
-            /* 2. ПРИМЕНЯЕМ СТАНДАРТНЫЙ ROBOTO ДЛЯ ВСЕГО ТЕКСТА */
-            font-family: 'Roboto', sans-serif;
+            font-family: 'Segoe UI', Arial, sans-serif;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -48,8 +47,23 @@
         h2 {
             margin-top: 0;
             font-size: 24px;
-            font-weight: 700;
+            font-weight: 600;
             letter-spacing: 0.5px;
+        }
+
+        /* Стили для иконки ошибки в заглушке */
+        .error-icon {
+            font-size: 48px;
+            color: var(--error-color);
+            margin-bottom: 15px;
+            line-height: 1;
+        }
+
+        .instruction {
+            color: var(--text-muted);
+            font-size: 14px;
+            line-height: 1.5;
+            margin-bottom: 25px;
         }
 
         .ip-container {
@@ -60,7 +74,6 @@
             padding: 18px;
             margin-bottom: 20px;
             
-            /* 3. ДЛЯ IP ИСПОЛЬЗУЕМ МОДЕРНОВЫЙ ROBOTO MONO */
             font-family: 'Roboto Mono', monospace;
             font-size: 20px;
             font-weight: 700;
@@ -86,7 +99,7 @@
             background-color: var(--accent-color);
             border: none;
             border-radius: 6px;
-            font-weight: 700;
+            font-weight: bold;
             cursor: pointer;
             transition: background 0.2s ease, transform 0.1s ease;
             box-sizing: border-box;
@@ -117,12 +130,13 @@
             padding: 2px 6px;
             border-radius: 4px;
             color: #fff;
-            font-family: 'Roboto Mono', monospace;
+            font-family: monospace;
         }
     </style>
 </head>
 <body>
 
+    <!-- 1. Основной блок подключения (по умолчанию скрыт, покажется только если IP есть) -->
     <div class="container" id="mainContainer" style="display: none;">
         <h2 id="title">Переход на другой сервер</h2>
         <p class="instruction" id="instruction">Из-за ограничений безопасности Steam прямое подключение заблокировано. Пожалуйста, скопируйте IP-адрес ниже:</p>
@@ -134,20 +148,22 @@
         <p class="console-hint" id="hint">После копирования откройте консоль (<code>~</code>) и вставьте команду в игру.</p>
     </div>
 
+    <!-- 2. Блок-заглушка на случай отсутствия IP (по умолчанию скрыт) -->
     <div class="container" id="errorContainer" style="display: none;">
-        <div class="error-icon" style="font-size: 48px; color: var(--error-color); margin-bottom: 15px;">⚠️</div>
+        <div class="error-icon">⚠️</div>
         <h2 id="errorTitle">Ошибка подключения</h2>
         <p class="instruction" id="errorText">Адрес сервера не указан или ссылка устарела. Пожалуйста, вернитесь на сайт и попробуйте подключиться снова.</p>
     </div>
 
     <script>
+        // Словарь переводов для нормального состояния и для заглушки
         const translations = {
             ru: {
                 title: "Переход на другой сервер",
                 instruction: "Из-за ограничений безопасности Steam прямое подключение заблокировано. Пожалуйста, скопируйте IP-адрес ниже:",
                 btnText: "СКОПИРОВАТЬ IP",
                 btnCopied: "СКОПИРОВАНО!",
-                hint: "После копирования откройте консоль (<code>~</code>) и вставьте команду в игру.",
+                hint: "После копирования откройте консоль (<code>~</code>) и вставьте команду.",
                 alertError: "Не удалось скопировать автоматически. Выделите текст в поле вручную.",
                 errorTitle: "Ошибка подключения",
                 errorText: "Адрес сервера не указан или ссылка устарела. Пожалуйста, вернитесь на сайт и попробуйте подключиться снова."
@@ -164,20 +180,25 @@
             }
         };
 
+        // 1. Получаем параметры из URL
         const urlParams = new URLSearchParams(window.location.search);
         
+        // Определяем язык
         let lang = urlParams.get('lang') || 'ru';
         lang = lang.toLowerCase() === 'en' ? 'en' : 'ru';
         const t = translations[lang];
         document.documentElement.lang = lang;
 
+        // Проверяем наличие параметра ip
         const rawIp = urlParams.get('ip');
 
         if (!rawIp || rawIp.trim() === "") {
+            // ЕСЛИ IP НЕТ: Переводим и показываем заглушку
             document.getElementById('errorTitle').innerText = t.errorTitle;
             document.getElementById('errorText').innerText = t.errorText;
             document.getElementById('errorContainer').style.display = 'block';
         } else {
+            // ЕСЛИ IP ЕСТЬ: Переводим интерфейс и показываем основную карточку
             document.getElementById('title').innerText = t.title;
             document.getElementById('instruction').innerText = t.instruction;
             document.getElementById('copyBtn').innerText = t.btnText;
@@ -189,6 +210,7 @@
 
             document.getElementById('mainContainer').style.display = 'block';
 
+            // Функция копирования в буфер обмена (активна только если показан основной контейнер)
             window.copyIp = function() {
                 navigator.clipboard.writeText(serverIp).then(() => {
                     const btn = document.getElementById('copyBtn');
@@ -205,6 +227,7 @@
                 });
             };
 
+            // Выделение всего текста при клике на сам блок с IP
             ipContainer.addEventListener('click', () => {
                 const range = document.createRange();
                 range.selectNodeContents(ipContainer);
@@ -214,5 +237,6 @@
             });
         }
     </script>
+
 </body>
 </html>
